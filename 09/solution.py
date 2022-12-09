@@ -1,5 +1,7 @@
 import argparse
 
+move_dict = {'R': (0, 1), 'L': (0, -1), 'U': (1, 0), 'D': (-1, 0)}
+
 
 def parse(string):
     move, n = string.split()
@@ -17,7 +19,6 @@ def read(filename):
 
 
 def update_head(pos, move):
-    move_dict = {'R': (0, 1), 'L': (0, -1), 'U': (1, 0), 'D': (-1, 0)}
     return tuple([p + m for p, m in zip(pos, move_dict[move])])
 
 
@@ -30,15 +31,13 @@ def update_tail(pos_tail, pos_head):
 
 
 def make_moves(moves, n_tails):
-    head = (0, 0)
-    tails = [(0, 0) for _ in range(n_tails)]
+    tails = [(0, 0) for _ in range(n_tails + 1)]
     tail_locations = []
     for move in moves:
-        head = update_head(head, move)
-        tails[0] = update_tail(tails[0], head)
-        for i in range(n_tails - 1):
+        tails[0] = update_head(tails[0], move)
+        for i in range(n_tails):
             tails[i + 1] = update_tail(tails[i + 1], tails[i])
-        tail_locations.append(tails[n_tails - 1])
+        tail_locations.append(tails[-1])
     return len(set(tail_locations))
 
 
