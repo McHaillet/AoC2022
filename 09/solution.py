@@ -30,23 +30,23 @@ def update_tail(pos_tail, pos_head):
                       for t, h in zip(pos_tail, pos_head)])
 
 
-def make_moves(moves, n_tails):
-    tails = [(0, 0) for _ in range(n_tails + 1)]
+def simulate_rope(moves, n_tails):
+    rope = [(0, 0) for _ in range(n_tails + 1)]
     tail_locations = []
     for move in moves:
-        tails[0] = update_head(tails[0], move)
+        rope[0] = update_head(rope[0], move)
         for i in range(n_tails):
-            tails[i + 1] = update_tail(tails[i + 1], tails[i])
-        tail_locations.append(tails[-1])
+            rope[i + 1] = update_tail(rope[i + 1], rope[i])
+        tail_locations.append(rope[-1])
     return len(set(tail_locations))
 
 
 def part_1(data):
-    print(make_moves(data, n_tails=1))
+    print(simulate_rope(data, n_tails=1))
 
 
 def part_2(data):
-    print(make_moves(data, n_tails=9))
+    print(simulate_rope(data, n_tails=9))
 
 
 def main(filename):
@@ -58,6 +58,6 @@ def main(filename):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--file', type=str, required=True,
-                        help='File path with protein structure, either pdb or cif.')
+                        help='AoC example/input txt file.')
     args = parser.parse_args()
     main(args.file)
