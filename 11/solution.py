@@ -19,8 +19,6 @@ def create_function(op, var):
 
 @jit(nopython=True)
 def get_modulo(start, op_list, val_list, mod):
-    # better create loop
-    assert len(op_list) == len(val_list), 'error'
     result = start % mod
     for i in range(len(op_list)):
         if val_list[i] == -1:
