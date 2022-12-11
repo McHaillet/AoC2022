@@ -86,6 +86,9 @@ class MonkeyBusiness:
     def print_state(self):
         print([m.inspections for m in self._list])
 
+    def find_mod(self):  # should have used this!
+        print(np.lcm.reduce([m.test for m in self._list]))
+
 
 def read(filename):
     with open(filename) as f:
@@ -105,7 +108,8 @@ def part_1(monkeys):
 
 
 def part_2(monkeys):
-    for i in range(10000):
+    monkeys.find_mod()
+    for i in range(1000):
         if i % 1000 == 0:
             monkeys.print_state()
         monkeys.run_round(with_relief=False)
