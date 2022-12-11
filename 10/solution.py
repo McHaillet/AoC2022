@@ -1,7 +1,5 @@
 import argparse
 
-move_dict = {'R': (0, 1), 'L': (0, -1), 'U': (1, 0), 'D': (-1, 0)}
-
 
 def parse(string):
     if string == 'noop':
