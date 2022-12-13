@@ -22,18 +22,16 @@ def read(filename):
 def compare(p1, p2):
 
     for a, b in zip(p1, p2):
-        if type(a) != type(b):
-            if isinstance(a, list):
-                res = compare(a, [b])
-            else:
-                res = compare([a], b)
-        elif type(a) == type(b) == int:
+        if type(a) == type(b) == int:
             if a == b:
                 continue
             else:
                 return -1 if a < b else 1
-        else:
-            res = compare(a, b)
+        elif type(a) == int:
+            a = [a]
+        elif type(b) == int:
+            b = [b]
+        res = compare(a, b)
         if res == 0:
             continue
         else:
