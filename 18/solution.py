@@ -1,6 +1,8 @@
 import argparse
 import numpy as np
 
+moves = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]
+
 
 def read(filename):
     coords = []
@@ -26,42 +28,52 @@ def adjacency_mat(grid):
     return mat
 
 
-def adjacency_mat_diag(grid):
-    mat = np.zeros((len(grid), len(grid)), dtype=int)
-    for n, p in enumerate(grid):
-        x, y, z = p
-        connect = set()
-        for i in (-1, 0, 1):
-            for j in (-1, 0, 1):
-                for k in (-1, 0, 1):
-                    if (i, j, k) != (0, 0, 0):
-                        c = (x + i, y + j, z + k)
-                        if c in grid:
-                            mat[n, grid.index(c)] = 1
-    return mat
+def surface_area(m):
+    return 6 * m.shape[0] - m.sum()
 
 
 def bounds(coords):
     x = [p[0] for p in coords]
     y = [p[1] for p in coords]
     z = [p[2] for p in coords]
-    return (min(x), max(y)), (min(y), max(y)), (min(z), max(z))
+    return (min(x), max(y) + 1), (min(y), max(y) + 1), (min(z), max(z) + 1)
 
 
-def air_pockets(points, mat):
+def air_pockets(points, bounds):
     # search over all b?
-    bx, by, bz = b
-    for x in range(bx[0] + 1, bx[1] - 1):
-        for y in range(by[0] + 1, by[1] - 1):
-            for z in range(bz[0] + 1, bz[1] - 1):
-                connect = set()
-                [connect.add((x + i, y, z)) for i in (-1, 1)]
-                [connect.add((x, y + i, z)) for i in (-1, 1)]
-                [connect.add((x, y, z + i)) for i in (-1, 1)]
-
-
-def surface_area(m):
-    return 6 * m.shape[0] - m.sum()
+    bx, by, bz = bounds
+    xx, yy, zz = list(range(*bx)), list(range(*by)), list(range(*bz))
+    grid = set()
+    for x in xx:
+        for y in yy:
+            for z in zz:
+                if not (x, y, z) in points:
+                    grid.add((x, y, z))
+    # excluded = []
+    pockets = []
+    while grid:  # find all connected components
+        air_can_evaporate = False
+        visited = set()
+        q = [grid.pop()]
+        while q:
+            p = q.pop()
+            visited.add(p)
+            if p in grid:
+                grid.remove(p)
+            for m in moves:
+                x, y, z = [a + i for a, i in zip(p, m)]
+                if (x, y, z) in visited or (x, y, z) in points:
+                    continue
+                elif x <= bx[0] or x >= bx[1]\
+                        or y <= by[0] or y >= by[1]\
+                        or z <= bz[0] or z >= bz[1]:
+                    air_can_evaporate = True
+                else:
+                    q.append((x, y, z))
+        if not air_can_evaporate:
+            pockets += list(visited)
+        # else: excluded += list(visited)
+    return pockets
 
 
 def main(filename):
@@ -69,9 +81,10 @@ def main(filename):
     m = adjacency_mat(c)
     surface_outside = surface_area(m)
     print(surface_outside)
-    m2 = adjacency_mat_diag(c)
-    b = bounds(c)
-    air_inside = air_pockets(c, m)
+    air_inside = air_pockets(set(c), bounds(c))
+    m2 = adjacency_mat(air_inside)
+    surface_inside = surface_area(m2)
+    print(surface_outside - surface_inside)
 
 
 if __name__ == "__main__":
