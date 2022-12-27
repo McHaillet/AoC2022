@@ -29,47 +29,68 @@ def read(filename):
     return factories
 
 
-def production_options(blueprint, minerals):
-    options = [False, ] * 4
+def queue_production_options(queue, time, blueprint, current_robots, current_minerals):
+    # get the robots that can be produced based on current mining robots
+    queue_size_before = len(queue)
     for robot, costs in blueprint.items():
-        options[robot] = all([v <= minerals[k] for k, v in costs.items()])
-    return options
+        if all([current_robots[k] > 0 for k in costs.keys()]):  # if available robots can mine the materials
+            max_time_steps = 0
+            for mineral, needed in costs.items():
+                need_to_mine = needed - current_minerals[mineral] if needed > current_minerals[mineral] else 0
+                steps, leftover = divmod(need_to_mine, current_robots[mineral])
+                steps = steps + 1 if leftover > 0 else steps
+                if steps > max_time_steps:
+                    max_time_steps = steps
+            max_time_steps += 1  # always add 1 to pass time and robot is build before mining
+            if not time - max_time_steps < 1:
+                queue.append((time - max_time_steps, max_time_steps,  # new time, time steps taken
+                              current_robots.copy(), current_minerals.copy(),  # current min, current robots
+                              robot))  # which one to build after
+    if queue_size_before == len(queue):  # if we can no longer build in the leftover time then set to end
+        queue.append((0, time, current_robots.copy(), current_minerals.copy(), None))
 
 
 def max_production(blueprint):
     robots = [1, 0, 0, 0]
     minerals = [0, 0, 0, 0]
     time = 24
-    q = [(time, robots, minerals)]
+    q = []
+    queue_production_options(q, time, blueprint, robots, minerals)
     max_geodes = 0
     while q:
-        time, robots, minerals = q.pop()
-        if time == 0:
+        time, time_steps, robots, minerals, robot_to_build = q.pop(-1)
+
+        minerals = [m + (r * time_steps) for m, r in zip(minerals, robots)]  # mine the mineral
+
+        if time == 0:  # cut at time 0 or when building geode robots is no
+            # longer possible/effective that should remove a lot of options
             if minerals[3] > max_geodes:
                 max_geodes = minerals[3]
                 print(max_geodes)
+                # print(minerals, robots)
             continue
-        minerals = [m + r for m, r in zip(minerals, robots)]
-        choices = production_options(blueprint, minerals)
-        # append choices to q
-        for i, choice in enumerate(choices):
-            if choice:  # could reduce time by removing irrelevant choices
-                # if you buy a clay robot next and you have enough ore it does not make sense to wait longer
-                r, m = robots.copy(), minerals.copy()
-                r[i] += 1
-                for j, c in blueprint[i].items():
-                    m[j] -= c
-                q.append((time - 1, r, m))
-        q.append((time - 1, robots, minerals))  # just wait
+        elif time < 0:
+            print('smth went wrong')
+
+        if robot_to_build is not None:
+            robots[robot_to_build] += 1  # build the robot
+            for j, c in blueprint[robot_to_build].items():
+                minerals[j] -= c  # pay the costs
+
+        queue_production_options(q, time, blueprint, robots, minerals)
+
     return max_geodes
 
 
 def main(filename):
     factory_bps = read(filename)
-    print(factory_bps)
-    for bp in factory_bps:
-        print(max_production(bp))
-    # print(data)
+    score = 0
+    for i, bp in enumerate(factory_bps):
+        print(bp)
+        geodes = max_production(bp)
+        print(f'max prod = {geodes}')
+        score += (i * geodes)
+    print(f'final score = {score}')
 
 
 if __name__ == "__main__":
