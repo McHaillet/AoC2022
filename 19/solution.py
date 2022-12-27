@@ -42,7 +42,8 @@ def queue_production_options(queue, time, blueprint, current_robots, current_min
                 if steps > max_time_steps:
                     max_time_steps = steps
             max_time_steps += 1  # always add 1 to pass time and robot is build before mining
-            if not time - max_time_steps < 1:
+            if (robot == 3 and not time - max_time_steps < 1) or \
+                    (robot != 3 and not time - max_time_steps < 3):
                 queue.append((time - max_time_steps, max_time_steps,  # new time, time steps taken
                               current_robots.copy(), current_minerals.copy(),  # current min, current robots
                               robot))  # which one to build after
@@ -50,15 +51,24 @@ def queue_production_options(queue, time, blueprint, current_robots, current_min
         queue.append((0, time, current_robots.copy(), current_minerals.copy(), None))
 
 
-def max_production(blueprint):
+def max_production(blueprint, time=24):
     robots = [1, 0, 0, 0]
     minerals = [0, 0, 0, 0]
-    time = 24
+    # visited = dict()
     q = []
     queue_production_options(q, time, blueprint, robots, minerals)
     max_geodes = 0
     while q:
         time, time_steps, robots, minerals, robot_to_build = q.pop(-1)
+
+        # visit = tuple(robots)  # does not work like this
+        # if visit in visited.keys():
+        #     if visited[visit] >= time:
+        #         visited[visit] = time
+        #     else:
+        #         continue
+        # else:
+        #     visited[visit] = time
 
         minerals = [m + (r * time_steps) for m, r in zip(minerals, robots)]  # mine the mineral
 
@@ -66,7 +76,7 @@ def max_production(blueprint):
             # longer possible/effective that should remove a lot of options
             if minerals[3] > max_geodes:
                 max_geodes = minerals[3]
-                print(max_geodes)
+                # print(max_geodes)
                 # print(minerals, robots)
             continue
         elif time < 0:
@@ -82,15 +92,30 @@ def max_production(blueprint):
     return max_geodes
 
 
+def part1(factory_blueprints):
+    score = 0
+    for i, bp in enumerate(factory_blueprints):
+        # print(bp)
+        geodes = max_production(bp)
+        print(f'blueprint {i + 1}, max prod = {geodes}')
+        score += (i + 1) * geodes
+    print(f'final score = {score}')
+
+
+def part2(factory_blueprints):
+    score = 1
+    for i, bp in enumerate(factory_blueprints[:3]):
+        # print(bp)
+        geodes = max_production(bp, time=32)
+        print(f'blueprint {i + 1}, max prod = {geodes}')
+        score * geodes
+    print(f'final score = {score}')
+
+
 def main(filename):
     factory_bps = read(filename)
-    score = 0
-    for i, bp in enumerate(factory_bps):
-        print(bp)
-        geodes = max_production(bp)
-        print(f'max prod = {geodes}')
-        score += (i * geodes)
-    print(f'final score = {score}')
+    part1(factory_bps)
+    part2(factory_bps)
 
 
 if __name__ == "__main__":
