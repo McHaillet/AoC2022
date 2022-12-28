@@ -1,4 +1,6 @@
 import argparse
+import heapq
+from tqdm import tqdm
 
 ore_to_id = {'ore': 0,
              'clay': 1,
@@ -29,9 +31,8 @@ def read(filename):
     return factories
 
 
-def queue_production_options(queue, time, blueprint, current_robots, current_minerals):
-    # get the robots that can be produced based on current mining robots
-    queue_size_before = len(queue)
+def queue_production_options(queue, time, blueprint, current_robots, current_minerals, score):
+    queue_size_before = len(queue)  # record queue size before adding new options
     for robot, costs in blueprint.items():
         if all([current_robots[k] > 0 for k in costs.keys()]):  # if available robots can mine the materials
             max_time_steps = 0
@@ -42,74 +43,70 @@ def queue_production_options(queue, time, blueprint, current_robots, current_min
                 if steps > max_time_steps:
                     max_time_steps = steps
             max_time_steps += 1  # always add 1 to pass time and robot is build before mining
-            if (robot == 3 and not time - max_time_steps < 1) or \
-                    (robot != 3 and not time - max_time_steps < 3):
-                queue.append((time - max_time_steps, max_time_steps,  # new time, time steps taken
-                              current_robots.copy(), current_minerals.copy(),  # current min, current robots
-                              robot))  # which one to build after
+            if robot == 3 and not time - max_time_steps < 1:
+                heapq.heappush(queue, (score - (time - max_time_steps),
+                                       (time - max_time_steps, max_time_steps,  # new time, time steps taken
+                                        current_robots.copy(), current_minerals.copy(),  # current min, current robots
+                                        robot)))
+            elif robot != 3 and not time - max_time_steps < 2:
+                heapq.heappush(queue, (score,
+                                       (time - max_time_steps, max_time_steps,  # new time, time steps taken
+                                        current_robots.copy(), current_minerals.copy(),  # current min, current robots
+                                        robot)))  # which one to build after
     if queue_size_before == len(queue):  # if we can no longer build in the leftover time then set to end
-        queue.append((0, time, current_robots.copy(), current_minerals.copy(), None))
+        heapq.heappush(queue, (score, (0, time, current_robots.copy(), current_minerals.copy(), None)))
 
 
 def max_production(blueprint, time=24):
     robots = [1, 0, 0, 0]
     minerals = [0, 0, 0, 0]
-    # visited = dict()
+    score = 0
+    visited = {t: score for t in range(time - 1, -1, -1)}
     q = []
-    queue_production_options(q, time, blueprint, robots, minerals)
+    heapq.heapify(q)
+    queue_production_options(q, time, blueprint, robots, minerals, score)
     max_geodes = 0
     while q:
-        time, time_steps, robots, minerals, robot_to_build = q.pop(-1)
+        score, (time, time_steps, robots, minerals, robot_to_build) = heapq.heappop(q)
 
-        # visit = tuple(robots)  # does not work like this
-        # if visit in visited.keys():
-        #     if visited[visit] >= time:
-        #         visited[visit] = time
-        #     else:
-        #         continue
-        # else:
-        #     visited[visit] = time
+        # check if this is the optimal path so far
+        if score < visited[time]:
+            [visited.update({t: score}) for t in range(time, -1, -1) if score < visited[t]]
+        elif score > visited[time]:
+            continue
 
         minerals = [m + (r * time_steps) for m, r in zip(minerals, robots)]  # mine the mineral
 
         if time == 0:  # cut at time 0 or when building geode robots is no
             # longer possible/effective that should remove a lot of options
-            if minerals[3] > max_geodes:
-                max_geodes = minerals[3]
-                # print(max_geodes)
-                # print(minerals, robots)
+            if abs(score) > max_geodes:
+                max_geodes = abs(score)
             continue
-        elif time < 0:
-            print('smth went wrong')
 
         if robot_to_build is not None:
             robots[robot_to_build] += 1  # build the robot
             for j, c in blueprint[robot_to_build].items():
                 minerals[j] -= c  # pay the costs
 
-        queue_production_options(q, time, blueprint, robots, minerals)
+        queue_production_options(q, time, blueprint, robots, minerals, score)
 
     return max_geodes
 
 
 def part1(factory_blueprints):
     score = 0
-    for i, bp in enumerate(factory_blueprints):
-        # print(bp)
-        geodes = max_production(bp)
-        print(f'blueprint {i + 1}, max prod = {geodes}')
+    for i in tqdm(range(len(factory_blueprints))):
+        geodes = max_production(factory_blueprints[i])
         score += (i + 1) * geodes
-    print(f'final score = {score}')
+    print(f'part 1 = {score}')
 
 
 def part2(factory_blueprints):
     score = 1
-    for i, bp in enumerate(factory_blueprints[:3]):
-        # print(bp)
-        geodes = max_production(bp, time=32)
-        print(f'blueprint {i + 1}, max prod = {geodes}')
-        score * geodes
-    print(f'final score = {score}')
+    for i in tqdm(range(3)):
+        geodes = max_production(factory_blueprints[i], time=32)
+        score *= geodes
+    print(f'part 2 = {score}')
 
 
 def main(filename):
