@@ -1,10 +1,5 @@
 import argparse
-import math
-from tqdm import tqdm
-
-
-def sign(x):
-    return math.copysign(1, x)
+from tqdm import tqdm  # progress bar
 
 
 def read(filename):
