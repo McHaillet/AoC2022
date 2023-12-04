@@ -38,47 +38,47 @@ def get_route(string):
     return [int(x) if x.isdigit() else x for x in re.split(r'(\d+)', string) if not x == '']
 
 
-def take_steps(board, start, n_steps, step):
+def take_steps_part_1(board, start, n_steps, step):
     width, height = len(board[0]), len(board)
     current = start
     for _ in range(n_steps):
         new = (
-            (current[0] + step[0]) % width,
-            (current[1] + step[1]) % height,
+            (current[0] + step[0]) % height,
+            (current[1] + step[1]) % width,
         )
-        if board[new[0]][new[1]] == '#':
-            return current
-        elif board[new[0]][new[1]] == '.':
-            current = new
-        else:  # wrap around
+        if board[new[0]][new[1]] == 'x':
             if step[0] == 0:  # wrap around column
                 row = board[new[0]]
-                wrap = (row[new[1]::step[1]] + row[:new[1]:step[1]]).index('.')  # this is the offset to wrap
-                current = (
+                search_space = ''.join(row[new[1]::step[1]] + row[:new[1]:step[1]])
+                wrap = re.search(r'[.#]', search_space).start()
+                new = (
                     new[0],
                     (new[1] + step[1] * wrap) % width
                 )
             else:  # wrap around row
                 column = [board[i][new[1]] for i in range(height)]
-                wrap = (column[new[0]::step[0]] + column[:new[0]:step[0]]).index('.')
-                current = (
+                search_space = ''.join(column[new[0]::step[0]] + column[:new[0]:step[0]])
+                wrap = re.search(r'[.#]', search_space).start()
+                new = (
                     (new[0] + step[0] * wrap) % height,
                     new[1]
                 )
+        if board[new[0]][new[1]] == '#':
+            return current
+        else:  # i.e. == '.':
+            current = new
     return current
 
 
 def part_1(board, instructions):
     position = (0, board[0].index('.'))
-    print(position)
     facing = 0
     for x in instructions:
         if isinstance(x, str):
             facing = (facing + rotate[x]) % 4
         else:
-            position = take_steps(board, position, x, face_to_step[facing])
-        print(facing, position)
-    return position[0] * 1000 + position[1] * 4 + facing
+            position = take_steps_part_1(board, position, x, face_to_step[facing])
+    return (position[0] + 1) * 1000 + (position[1] + 1) * 4 + facing
 
 
 def part_2(board, instructions):
